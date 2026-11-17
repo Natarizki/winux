@@ -39,6 +39,35 @@ int main() {
     assert(count == 3u && snapshot[0].flags == 0u &&
         snapshot[1].flags == (WINUX_MEMORY_REGION_COMMITTED | WINUX_MEMORY_REGION_READ) &&
         snapshot[2].flags == 0u);
+    {
+        winux_host_fault_record fault{};
+        winux_fault_decision decision{};
+
+        fault.kind = WINUX_HOST_FAULT_ACCESS_VIOLATION;
+        fault.access = WINUX_HOST_FAULT_ACCESS_WRITE;
+        fault.fault_address = reinterpret_cast<uintptr_t>(region.base) + page;
+        assert(winux_memory_manager_classify_fault(manager, &fault, &decision) == 1);
+        assert(decision.disposition == WINUX_FAULT_DISPOSITION_PROTECTION_VIOLATION);
+        assert(decision.region_index != static_cast<size_t>(-1));
+
+        fault.access = WINUX_HOST_FAULT_ACCESS_READ;
+        assert(winux_memory_manager_classify_fault(manager, &fault, &decision) == 1);
+        assert(decision.disposition == WINUX_FAULT_DISPOSITION_UNEXPECTED_HOST_FAULT);
+
+        fault.access = WINUX_HOST_FAULT_ACCESS_WRITE;
+        fault.fault_address = reinterpret_cast<uintptr_t>(region.base) + page * 2u;
+        assert(winux_memory_manager_classify_fault(manager, &fault, &decision) == 1);
+        assert(decision.disposition == WINUX_FAULT_DISPOSITION_UNMAPPED);
+
+        fault.fault_address = reinterpret_cast<uintptr_t>(region.base) + page * 3u;
+        assert(winux_memory_manager_classify_fault(manager, &fault, &decision) == 1);
+        assert(decision.disposition == WINUX_FAULT_DISPOSITION_UNMAPPED);
+
+        fault.kind = WINUX_HOST_FAULT_GUARD_PAGE;
+        fault.fault_address = reinterpret_cast<uintptr_t>(region.base) + page;
+        assert(winux_memory_manager_classify_fault(manager, &fault, &decision) == 1);
+        assert(decision.disposition == WINUX_FAULT_DISPOSITION_GUARD_PAGE);
+    }
     assert(winux_memory_manager_commit(manager, region.base, 1u, page) == 0);
     assert(winux_memory_manager_protect(manager, region.base, page * 2u, page, WINUX_HOST_MEMORY_READ_ONLY) == 0);
     assert(winux_memory_manager_release(manager, region.base) == 1);
