@@ -6,7 +6,7 @@
 #endif
 
 #include <winux/winux.h>
-#include "win32_platform.h"
+#include "host_api.h"
 
 #include <cassert>
 #include <cstdint>
@@ -64,7 +64,7 @@ void test_runtime_lifecycle()
 void test_virtual_memory()
 {
     const std::size_t page_size =
-        static_cast<std::size_t>(winux_platform_page_size());
+        static_cast<std::size_t>(winux_host_page_size());
     winux_host_memory_region region{};
     uint32_t error = 0u;
 
