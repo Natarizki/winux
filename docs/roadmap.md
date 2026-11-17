@@ -38,3 +38,13 @@ Only completed and CI-tested items are checked. Stages 2 and 3 are not implement
 
 The fault classifier consumes a caller-owned region snapshot. It is policy
 classification only; it does not repair faults or implement Linux MM behavior.
+
+
+## Memory-model groundwork (host-side prototype)
+
+- [x] Add initial anonymous/private VMA metadata over a managed host reservation
+- [x] Split/coalesce VMA metadata for protection changes and unmapping
+- [ ] Add file-backed/shared mappings and Linux-specific mapping semantics (not started)
+- [ ] Add Linux page-fault resolution, COW, page tables, and demand paging (not started)
+
+The initial VMA layer is host-side metadata only; it is not Linux MM.
