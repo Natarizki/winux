@@ -7,6 +7,7 @@
 
 #include <winux/winux.h>
 #include "host_api.h"
+#include "host_fault.h"
 
 #include <cassert>
 #include <cstdint>
@@ -161,6 +162,36 @@ void test_thread_event_and_mutex()
     winux_host_mutex_destroy(mutex);
 }
 
+
+void test_host_fault_boundary()
+{
+    const std::size_t page_size =
+        static_cast<std::size_t>(winux_host_page_size());
+    winux_host_memory_region region{};
+    winux_host_fault_record fault{};
+    uint32_t error = 0u;
+    uint8_t value = 0u;
+
+    assert(winux_host_memory_reserve(page_size, &region, &error) == 1);
+    assert(winux_host_memory_commit(&region, 0u, page_size, &error) == 1);
+
+    auto *bytes = static_cast<unsigned char *>(region.base);
+    bytes[0] = 0xC3u;
+    assert(winux_host_memory_probe_read(bytes, &value, &fault) == 1);
+    assert(value == 0xC3u);
+    assert(fault.kind == WINUX_HOST_FAULT_NONE);
+
+    assert(winux_host_memory_protect(
+        &region, 0u, page_size, WINUX_HOST_MEMORY_NO_ACCESS, &error) == 1);
+    assert(winux_host_memory_probe_read(bytes, &value, &fault) == 0);
+    assert(fault.kind == WINUX_HOST_FAULT_ACCESS_VIOLATION);
+    assert(fault.access == WINUX_HOST_FAULT_ACCESS_READ);
+    assert(fault.fault_address == reinterpret_cast<uintptr_t>(bytes));
+    assert(fault.platform_exception_code == 0xC0000005u);
+
+    winux_host_memory_release(&region);
+}
+
 void test_monotonic_clock()
 {
     const uint64_t before = winux_host_monotonic_time_ms();
@@ -176,6 +207,7 @@ int main()
     test_virtual_memory();
     test_thread_event_and_mutex();
     test_cooperative_thread_stop();
+    test_host_fault_boundary();
     test_monotonic_clock();
 
     std::cout << "Winux host primitive tests passed.\n";
