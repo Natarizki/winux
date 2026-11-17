@@ -24,16 +24,21 @@ int main() {
     assert(winux_memory_manager_snapshot(manager, snapshot.data(), snapshot.size(), &count) == 0 && count == 2u);
     snapshot.resize(count);
     assert(winux_memory_manager_snapshot(manager, snapshot.data(), snapshot.size(), &count) == 1);
-    assert(snapshot[0].flags == 0u && snapshot[0].size == page);
-    assert(snapshot[1].flags == (WINUX_MEMORY_REGION_COMMITTED | WINUX_MEMORY_REGION_READ | WINUX_MEMORY_REGION_WRITE));
+    assert(snapshot[0].flags == (WINUX_MEMORY_REGION_COMMITTED | WINUX_MEMORY_REGION_READ | WINUX_MEMORY_REGION_WRITE));
+    assert(snapshot[0].size == page * 2u);
+    assert(snapshot[1].flags == 0u && snapshot[1].size == page);
     assert(winux_memory_manager_protect(manager, region.base, page, page, WINUX_HOST_MEMORY_READ_ONLY) == 1);
     assert(winux_memory_manager_snapshot(manager, snapshot.data(), snapshot.size(), &count) == 0 && count == 3u);
     snapshot.resize(count);
     assert(winux_memory_manager_snapshot(manager, snapshot.data(), snapshot.size(), &count) == 1);
+    assert(snapshot[0].flags == (WINUX_MEMORY_REGION_COMMITTED | WINUX_MEMORY_REGION_READ | WINUX_MEMORY_REGION_WRITE));
     assert(snapshot[1].flags == (WINUX_MEMORY_REGION_COMMITTED | WINUX_MEMORY_REGION_READ));
+    assert(snapshot[2].flags == 0u);
     assert(winux_memory_manager_decommit(manager, region.base, 0u, page) == 1);
     assert(winux_memory_manager_snapshot(manager, snapshot.data(), snapshot.size(), &count) == 1);
-    assert(count == 3u && snapshot[0].flags == 0u);
+    assert(count == 3u && snapshot[0].flags == 0u &&
+        snapshot[1].flags == (WINUX_MEMORY_REGION_COMMITTED | WINUX_MEMORY_REGION_READ) &&
+        snapshot[2].flags == 0u);
     assert(winux_memory_manager_commit(manager, region.base, 1u, page) == 0);
     assert(winux_memory_manager_protect(manager, region.base, page * 2u, page, WINUX_HOST_MEMORY_READ_ONLY) == 0);
     assert(winux_memory_manager_release(manager, region.base) == 1);
