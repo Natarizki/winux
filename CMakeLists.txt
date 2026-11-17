@@ -10,6 +10,10 @@ if(NOT WIN32)
     message(FATAL_ERROR "The current Winux prototype targets native Windows only.")
 endif()
 
+if(NOT MSVC)
+    message(FATAL_ERROR "The current SEH fault boundary requires the Microsoft C compiler (MSVC).")
+endif()
+
 option(WINUX_BUILD_TESTS "Build Winux runtime tests" ON)
 
 set(CMAKE_C_STANDARD 11)
