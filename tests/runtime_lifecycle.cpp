@@ -14,8 +14,9 @@
 
 namespace {
 
-uint32_t signal_event_from_thread(void *context)
+uint32_t signal_event_from_thread(void *context, const winux_host_stop_token *stop_token)
 {
+    (void)stop_token;
     auto *event = static_cast<winux_host_event *>(context);
     uint32_t error = 0u;
     const int result = winux_host_event_set(event, &error);
@@ -24,6 +25,45 @@ uint32_t signal_event_from_thread(void *context)
     return 0x5A5Au;
 }
 
+
+struct stop_test_context {
+    winux_host_event *started;
+    int observed_stop;
+};
+
+uint32_t wait_for_stop(void *raw_context, const winux_host_stop_token *stop_token)
+{
+    auto *context = static_cast<stop_test_context *>(raw_context);
+    uint32_t error = 0u;
+    (void)winux_host_event_set(context->started, &error);
+    while (!winux_host_stop_requested(stop_token)) {
+        /* Cooperative polling: no forced thread termination. */
+    }
+    context->observed_stop = 1;
+    return 0x53544F50u;
+}
+
+void test_cooperative_thread_stop()
+{
+    winux_host_event *started = nullptr;
+    winux_host_thread *thread = nullptr;
+    uint32_t error = 0u;
+    uint32_t exit_code = 0u;
+    stop_test_context context{};
+
+    assert(winux_host_event_create(1, 0, &started, &error) == 1);
+    context.started = started;
+    assert(winux_host_thread_create(wait_for_stop, &context, &thread, &error) == 1);
+    assert(winux_host_event_wait(started, 5000u, &error) == WINUX_HOST_WAIT_SIGNALED);
+    assert(winux_host_thread_request_stop(thread, &error) == 1);
+    assert(winux_host_thread_join(thread, &exit_code, &error) == 1);
+    assert(context.observed_stop == 1);
+    assert(exit_code == 0x53544F50u);
+    assert(winux_host_thread_request_stop(thread, &error) == 1);
+
+    winux_host_thread_destroy(thread);
+    winux_host_event_destroy(started);
+}
 
 void test_runtime_lifecycle()
 {
@@ -135,6 +175,7 @@ int main()
     test_runtime_lifecycle();
     test_virtual_memory();
     test_thread_event_and_mutex();
+    test_cooperative_thread_stop();
     test_monotonic_clock();
 
     std::cout << "Winux host primitive tests passed.\n";
