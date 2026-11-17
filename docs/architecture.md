@@ -31,9 +31,9 @@ The stop token is backed by an interlocked host flag; it is a lifecycle primitiv
 
 ## What is not implemented
 
-The current code does not load or execute Linux kernel code, implement Linux task semantics, deliver Linux signals, handle Linux page faults, expose Linux system calls, or provide Linux device drivers. The memory regions are ordinary process virtual memory, not a Linux guest-physical-memory system.
+The current code does not load or execute Linux kernel code, implement Linux task semantics, deliver Linux signals, handle Linux page faults, expose a Linux system-call ABI, or provide Linux device drivers. The memory regions are ordinary process virtual memory, not a Linux guest-physical-memory system.
 
-The host contract is defined in src/host/host_api.h and uses opaque handles rather than exposing Win32 types. The current implementation is in src/host/win32_platform.c. This separation permits a future backend without changing the runtime-facing API.
+The host contract is defined in `src/host/host_api.h` and uses opaque handles rather than exposing Win32 types. The current implementation is in `src/host/win32_platform.c`. This separation permits a future backend without changing the runtime-facing API.
 
 ## Future kernel-hosting work
 
@@ -61,15 +61,12 @@ These are research and implementation requirements, not completed features. A st
 - No WSL or conventional virtual machine is part of the target architecture.
 - Unsupported kernel features must be reported honestly, not represented by placeholders.
 
-
 ## Fault classification policy
 
 The host SEH probe feeds a separate, platform-neutral dispatcher in
-`src/host/fault_dispatcher.c`. The dispatcher accepts a snapshot of non-overlapping address regions and classifies an observed fault as unmapped, guard-page, protection violation, unknown access, unsupported, or unexpected within an allowed region. The memory manager now exposes `winux_memory_manager_classify_fault`, which builds a complete snapshot from its owned per-page registry and passes that immutable snapshot to the pure classifier. If concurrent mutations invalidate the sizing pass, snapshot acquisition is retried; the classifier never traverses live manager nodes.
+`src/host/fault_dispatcher.c`. The dispatcher accepts a snapshot of non-overlapping address regions and classifies an observed fault as unmapped, guard-page, protection violation, unknown access, unsupported, or unexpected within an allowed region. The memory manager exposes `winux_memory_manager_classify_fault`, which builds a complete snapshot from its owned per-page registry and passes that immutable snapshot to the pure classifier. If concurrent mutations invalidate the sizing pass, snapshot acquisition is retried; the classifier never traverses live manager nodes.
 
-The dispatcher is deliberately pure: it does not allocate memory, change page
-protections, retry an access, or resume a faulting instruction. The manager owns and validates the region snapshot before invoking this policy. Classification remains diagnostic policy only; it does not repair faults, change page permissions, or resume execution.
-
+The dispatcher is deliberately pure: it does not allocate memory, change page protections, retry an access, or resume a faulting instruction. The manager owns and validates the region snapshot before invoking this policy. Classification remains diagnostic policy only; it does not repair faults, change page permissions, or resume execution.
 
 ## Owned memory-region manager
 
@@ -80,10 +77,8 @@ are serialized by a host mutex. Metadata changes occur only after the
 corresponding host operation succeeds. Callers must not mutate registered
 regions through the lower-level host memory API.
 
-This remains process virtual memory. It does not implement Linux VMAs,
-copy-on-write, page tables, physical frames, executable mappings, demand
-paging, or guest memory.
-
+This remains process virtual memory. It does not implement Linux page tables,
+physical frames, executable mappings, demand paging, or guest memory.
 
 ## Initial VMA metadata layer
 
@@ -99,3 +94,18 @@ mapping, copy-on-write, demand paging, page-table implementation, executable
 mapping, or Linux syscall ABI. The reservation remains a Win32 process address
 range, and unmapping a subrange decommits it while retaining the outer
 reservation.
+
+## Linux-shaped VM API facade
+
+`src/host/linux_vm_api.c` provides a deliberately limited API facade with
+Linux-shaped `mmap`, `mprotect`, and `munmap` entry points. It supports
+anonymous private mappings only, chooses the first available gap inside the
+pre-reserved host address range, rounds mapping lengths to host page size,
+and reports errors through a caller-owned error output (rather than process
+global errno).
+
+The current subset rejects shared/file-backed mappings, fixed-address
+mappings, nonzero file descriptors/offsets, write-only protection, and
+executable protection. The address hint is advisory and currently ignored.
+This facade is not a Linux syscall dispatcher, does not implement Linux
+process ABI behavior, and does not imply that Linux binaries can run.
