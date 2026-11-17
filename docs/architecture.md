@@ -83,3 +83,19 @@ regions through the lower-level host memory API.
 This remains process virtual memory. It does not implement Linux VMAs,
 copy-on-write, page tables, physical frames, executable mappings, demand
 paging, or guest memory.
+
+
+## Initial VMA metadata layer
+
+`src/host/vma_manager.c` adds a Linux-inspired virtual-memory-area metadata layer
+over one reservation owned by the existing host memory manager. It currently
+supports anonymous, private mappings only, with read/write/no-access
+protections. It validates page-aligned ranges, rejects overlaps and holes in
+protection/unmap requests, and splits or coalesces metadata areas when ranges
+change. Backing operations are completed before the VMA list is replaced.
+
+This is not Linux `mm_struct`/VMA behavior: there is no file mapping, shared
+mapping, copy-on-write, demand paging, page-table implementation, executable
+mapping, or Linux syscall ABI. The reservation remains a Win32 process address
+range, and unmapping a subrange decommits it while retaining the outer
+reservation.
