@@ -2,41 +2,55 @@
 
 ## Goal
 
-Winux investigates a native Windows process that can host an adapted Linux kernel execution environment. The design target excludes WSL, a conventional VM, and dual boot.
+Winux investigates whether an adapted Linux kernel execution environment can be hosted by a native Windows process. The design target excludes WSL, a conventional virtual machine, and dual boot.
 
 ## Current implementation
 
-```text
-Windows NT
-  └─ Winux.exe (native Windows process)
-       ├─ C++ RuntimeController
-       └─ C runtime
-            └─ Win32 host primitives
-                 └─ VirtualAlloc / VirtualFree / GetSystemInfo
-```
+    Windows NT
+      └─ Winux.exe (native Windows process)
+           ├─ C++ RuntimeController
+           └─ C runtime
+                └─ Win32 host backend
+                     ├─ VirtualAlloc / VirtualProtect / VirtualFree
+                     ├─ CreateThread / WaitForSingleObject
+                     ├─ Events and mutexes
+                     └─ GetTickCount64
 
-The current implementation demonstrates only process lifecycle and host-memory ownership. It does not load Linux kernel code, implement Linux task semantics, or expose Linux system calls.
+Implemented host primitives:
+
+- **Virtual memory regions:** reserve, commit, decommit, protect (no-access, read-only, read-write), and release. Ranges must be page-aligned and remain inside the reserved region. Executable page permissions are intentionally not exposed.
+- **Threads:** create, join, obtain exit code, and destroy a host thread handle.
+- **Synchronization:** manual/auto-reset events and mutexes.
+- **Monotonic clock:** millisecond counter from the Windows host.
+
+These are wrappers around Win32 process resources. They are not Linux mm, Linux tasks, Linux wait queues, Linux futexes, or a kernel scheduler. In particular, a Win32 thread is only a possible host execution resource; it is not automatically equivalent to a Linux task.
+
+## What is not implemented
+
+The current code does not load or execute Linux kernel code, implement Linux task semantics, deliver Linux signals, handle Linux page faults, expose Linux system calls, or provide Linux device drivers. The memory regions are ordinary process virtual memory, not a Linux guest-physical-memory system.
 
 ## Future kernel-hosting work
 
-The kernel-hosting layer is a separate, substantial engineering effort. Before attempting to execute kernel code, the project needs explicit designs and tests for:
+A kernel-hosting layer remains a substantial port/adaptation effort. Before executing kernel code, the project needs explicit designs and tests for:
 
-1. **Execution model:** mapping Linux task/thread concepts onto Windows scheduling primitives without pretending that ordinary Win32 threads are Linux tasks.
-2. **Memory model:** a Linux virtual/physical memory abstraction backed by Windows process memory, with defined page, protection, and fault semantics.
-3. **Kernel platform layer:** replacing or adapting assumptions about interrupts, timers, synchronization, CPU features, and low-level entry points.
-4. **Device boundary:** a constrained interface for host-provided devices and I/O. No direct hardware access is implemented by this prototype.
-5. **Syscall boundary:** a Linux userspace ABI only after a kernel execution backend exists.
+1. **Execution model:** map Linux task/thread concepts onto Windows scheduling primitives, including task state, context switching constraints, and host-thread lifetime.
+2. **Memory model:** define Linux virtual/physical memory semantics, page faults, mapping, protection, and allocation over Windows process memory.
+3. **Exception and signal model:** define how synchronous CPU exceptions and Linux signal semantics can be represented without unsafe assumptions about Windows exception handling.
+4. **Kernel platform layer:** adapt timers, synchronization, CPU features, low-level entry points, and assumptions about interrupts.
+5. **Device and I/O boundary:** define constrained host-provided devices and file/network I/O interfaces.
+6. **Syscall boundary:** add a Linux userspace ABI only after a kernel execution backend exists.
 
-These are design requirements, not completed features. A standard Linux kernel image cannot simply be linked into a Windows executable.
+These are research and implementation requirements, not completed features. A standard Linux kernel image cannot simply be linked into a Windows executable.
 
 ## Language boundaries
 
-- **C:** low-level host boundary and runtime core.
+- **C11:** low-level host boundary and runtime core.
 - **C++17:** ownership, orchestration, and higher-level integration.
-- **V:** not part of the bootstrap toolchain. It may be evaluated later for optional developer utilities, but it is not needed in the host/runtime core.
+- **V:** not part of the bootstrap toolchain. It may be evaluated for optional developer tools later; it is not needed in the host/runtime core.
 
 ## Constraints
 
-- Native Windows x64 is the first build target.
+- Native Windows x64 is the first target.
 - The host process remains an ordinary Windows process.
-- The prototype must report unsupported kernel features honestly rather than presenting placeholders as working Linux functionality.
+- No WSL or conventional virtual machine is part of the target architecture.
+- Unsupported kernel features must be reported honestly, not represented by placeholders.
