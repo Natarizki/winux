@@ -73,14 +73,17 @@ int winux_vma_map_anonymous_private(winux_vma_manager *m,size_t o,size_t n,uint3
     if(!x) { (void)winux_memory_manager_decommit(m->memory,m->base,o,n); unlock_manager(m); return 0; }
     for(link=&m->areas;*link && (*link)->area.offset<o;link=&(*link)->next) {}
     x->next=*link; *link=x;
-    /* Coalesce the complete ordered list. */
-    { struct vma_node *head=NULL,*tail=NULL,*cur=m->areas;
-      while(cur) { struct vma_node *next=cur->next;
-        if(!append(&head,&tail,cur->area.offset,cur->area.length,cur->area.protection)) {
-            list_free(head); unlock_manager(m); return 1; /* Existing mapping remains valid; keep original list. */
-        }
-        free(cur); cur=next;
-      } m->areas=head; }
+    /* Coalesce adjacent equal-protection areas without allocating. */
+    { struct vma_node *cur=m->areas;
+      while(cur && cur->next) {
+        struct vma_node *next=cur->next;
+        if(cur->area.offset+cur->area.length==next->area.offset &&
+           cur->area.protection==next->area.protection) {
+            cur->area.length+=next->area.length;
+            cur->next=next->next;
+            free(next);
+        } else cur=next;
+      } }
     unlock_manager(m); return 1;
 }
 static int rebuild_range(winux_vma_manager *m,size_t o,size_t n,uint32_t p,int remove) {
