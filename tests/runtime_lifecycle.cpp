@@ -130,7 +130,7 @@ void test_virtual_memory()
 
     assert(winux_host_memory_commit(&region, 1u, page_size, &error) == 0);
     assert(winux_host_memory_decommit(&region, 0u, page_size, &error) == 1);
-    winux_host_memory_release(&region);
+    assert(winux_host_memory_release(&region, &error) == 1);
     assert(region.base == nullptr);
     assert(region.size == 0u);
 }
@@ -190,7 +190,7 @@ void test_host_fault_boundary()
     assert(fault.fault_address == reinterpret_cast<uintptr_t>(bytes));
     assert(fault.platform_exception_code == 0xC0000005u);
 
-    winux_host_memory_release(&region);
+    assert(winux_host_memory_release(&region, &error) == 1);
 }
 
 
