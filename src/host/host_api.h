@@ -2,8 +2,8 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  * Platform-neutral host contract for the experimental Winux runtime.
  */
-#ifndef WINUX_WIN32_PLATFORM_H
-#define WINUX_WIN32_PLATFORM_H
+#ifndef WINUX_HOST_API_H
+#define WINUX_HOST_API_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -111,4 +111,4 @@ uint64_t winux_host_monotonic_time_ms(void);
 }
 #endif
 
-#endif /* WINUX_WIN32_PLATFORM_H */
+#endif /* WINUX_HOST_API_H */
