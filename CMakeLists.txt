@@ -26,6 +26,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(winux_host STATIC
     src/host/win32_platform.c
+    src/host/fault_dispatcher.c
     src/runtime/runtime.c
 )
 
