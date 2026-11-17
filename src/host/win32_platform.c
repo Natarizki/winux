@@ -8,7 +8,7 @@
 
 #include <stdlib.h>
 
-#include "win32_platform.h"
+#include "host_api.h"
 
 struct winux_host_thread {
     HANDLE handle;
@@ -42,7 +42,7 @@ static int winux_host_memory_range_valid(
     size_t bytes
 )
 {
-    const size_t page_size = (size_t)winux_platform_page_size();
+    const size_t page_size = (size_t)winux_host_page_size();
 
     if (region == NULL || region->base == NULL || bytes == 0u || page_size == 0u) {
         return 0;
@@ -56,7 +56,7 @@ static int winux_host_memory_range_valid(
     return 1;
 }
 
-int winux_platform_memory_allocate(
+int winux_host_memory_allocate(
     size_t bytes,
     void **out_address,
     uint32_t *out_platform_error
@@ -82,14 +82,14 @@ int winux_platform_memory_allocate(
     return 1;
 }
 
-void winux_platform_memory_release(void *address)
+void winux_host_memory_free(void *address)
 {
     if (address != NULL) {
         (void)VirtualFree(address, 0u, MEM_RELEASE);
     }
 }
 
-uint32_t winux_platform_page_size(void)
+uint32_t winux_host_page_size(void)
 {
     SYSTEM_INFO system_info;
     GetSystemInfo(&system_info);
