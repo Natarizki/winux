@@ -14,7 +14,8 @@ struct winux_vma_manager {
 static int lock_manager(winux_vma_manager *m) { uint32_t e=0; return winux_host_mutex_lock(m->mutex,&e); }
 static void unlock_manager(winux_vma_manager *m) { uint32_t e=0; (void)winux_host_mutex_unlock(m->mutex,&e); }
 static int valid_protection(uint32_t p) {
-    return (p & ~(uint32_t)(WINUX_VMA_PROT_READ|WINUX_VMA_PROT_WRITE))==0u;
+    return p==WINUX_VMA_PROT_NONE || p==WINUX_VMA_PROT_READ ||
+        p==(WINUX_VMA_PROT_READ|WINUX_VMA_PROT_WRITE);
 }
 static int valid_range(winux_vma_manager *m,size_t o,size_t n) {
     return n!=0u && o % m->page_size==0u && n % m->page_size==0u &&
