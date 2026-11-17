@@ -20,10 +20,15 @@ typedef enum winux_host_memory_protection {
 } winux_host_memory_protection;
 
 typedef struct winux_host_thread winux_host_thread;
+typedef struct winux_host_stop_token winux_host_stop_token;
 typedef struct winux_host_event winux_host_event;
 typedef struct winux_host_mutex winux_host_mutex;
 
-typedef uint32_t (*winux_host_thread_entry_fn)(void *context);
+/* Worker callbacks must poll the token and return cooperatively. */
+typedef uint32_t (*winux_host_thread_entry_fn)(
+    void *context,
+    const winux_host_stop_token *stop_token
+);
 
 typedef enum winux_host_wait_result {
     WINUX_HOST_WAIT_FAILED = -1,
@@ -75,6 +80,11 @@ int winux_host_thread_create(
     winux_host_thread **out_thread,
     uint32_t *out_platform_error
 );
+int winux_host_thread_request_stop(
+    winux_host_thread *thread,
+    uint32_t *out_platform_error
+);
+int winux_host_stop_requested(const winux_host_stop_token *stop_token);
 int winux_host_thread_join(
     winux_host_thread *thread,
     uint32_t *out_exit_code,
