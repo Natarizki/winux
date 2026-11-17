@@ -8,6 +8,7 @@
 #include <winux/winux.h>
 #include "host_api.h"
 #include "host_fault.h"
+#include "fault_dispatcher.h"
 
 #include <cassert>
 #include <cstdint>
@@ -192,6 +193,75 @@ void test_host_fault_boundary()
     winux_host_memory_release(&region);
 }
 
+
+void test_fault_dispatcher()
+{
+    const winux_memory_region_descriptor regions[] = {
+        { 0x1000u, 0x100u, WINUX_MEMORY_REGION_COMMITTED | WINUX_MEMORY_REGION_READ },
+        { 0x2000u, 0x100u, 0u },
+        { 0x3000u, 0x100u, WINUX_MEMORY_REGION_COMMITTED |
+          WINUX_MEMORY_REGION_READ | WINUX_MEMORY_REGION_GUARD }
+    };
+    winux_host_fault_record fault{};
+    winux_fault_decision decision{};
+
+    fault.kind = WINUX_HOST_FAULT_ACCESS_VIOLATION;
+    fault.access = WINUX_HOST_FAULT_ACCESS_READ;
+    fault.fault_address = 0x1010u;
+    assert(winux_fault_dispatcher_classify(
+        &fault, regions, 3u, &decision) == 1);
+    assert(decision.disposition == WINUX_FAULT_DISPOSITION_UNEXPECTED_HOST_FAULT);
+    assert(decision.region_index == 0u);
+
+    fault.access = WINUX_HOST_FAULT_ACCESS_WRITE;
+    assert(winux_fault_dispatcher_classify(
+        &fault, regions, 3u, &decision) == 1);
+    assert(decision.disposition == WINUX_FAULT_DISPOSITION_PROTECTION_VIOLATION);
+
+    fault.access = WINUX_HOST_FAULT_ACCESS_READ;
+    fault.fault_address = 0x2010u;
+    assert(winux_fault_dispatcher_classify(
+        &fault, regions, 3u, &decision) == 1);
+    assert(decision.disposition == WINUX_FAULT_DISPOSITION_UNMAPPED);
+    assert(decision.region_index == 1u);
+
+    fault.fault_address = 0x4010u;
+    assert(winux_fault_dispatcher_classify(
+        &fault, regions, 3u, &decision) == 1);
+    assert(decision.disposition == WINUX_FAULT_DISPOSITION_UNMAPPED);
+    assert(decision.region_index == SIZE_MAX);
+
+    fault.fault_address = 0x3010u;
+    assert(winux_fault_dispatcher_classify(
+        &fault, regions, 3u, &decision) == 1);
+    assert(decision.disposition == WINUX_FAULT_DISPOSITION_GUARD_PAGE);
+
+    fault.fault_address = 0x1010u;
+    fault.access = WINUX_HOST_FAULT_ACCESS_UNKNOWN;
+    assert(winux_fault_dispatcher_classify(
+        &fault, regions, 3u, &decision) == 1);
+    assert(decision.disposition == WINUX_FAULT_DISPOSITION_UNKNOWN_ACCESS);
+
+    fault.kind = WINUX_HOST_FAULT_OTHER;
+    assert(winux_fault_dispatcher_classify(
+        &fault, regions, 3u, &decision) == 1);
+    assert(decision.disposition == WINUX_FAULT_DISPOSITION_UNSUPPORTED);
+
+    {
+        const winux_memory_region_descriptor overlapping[] = {
+            { 0x1000u, 0x100u, WINUX_MEMORY_REGION_COMMITTED },
+            { 0x1080u, 0x100u, WINUX_MEMORY_REGION_COMMITTED }
+        };
+        assert(winux_fault_dispatcher_classify(
+            &fault, overlapping, 2u, &decision) == 0);
+    }
+
+    assert(winux_fault_dispatcher_classify(
+        nullptr, regions, 3u, &decision) == 0);
+    assert(winux_fault_dispatcher_classify(
+        &fault, regions, 3u, nullptr) == 0);
+}
+
 void test_monotonic_clock()
 {
     const uint64_t before = winux_host_monotonic_time_ms();
@@ -208,6 +278,7 @@ int main()
     test_thread_event_and_mutex();
     test_cooperative_thread_stop();
     test_host_fault_boundary();
+    test_fault_dispatcher();
     test_monotonic_clock();
 
     std::cout << "Winux host primitive tests passed.\n";
