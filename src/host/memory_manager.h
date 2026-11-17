@@ -6,6 +6,7 @@
 #define WINUX_MEMORY_MANAGER_H
 #include <stddef.h>
 #include <stdint.h>
+#include "host_api.h"
 #include "fault_dispatcher.h"
 #ifdef __cplusplus
 extern "C" {
