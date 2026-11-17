@@ -96,6 +96,16 @@ static int change_range(winux_memory_manager *m, void *base, size_t offset,
     if (m == NULL || base == NULL || !manager_lock(m)) return 0;
     p = find_region(m, base);
     if (!range_valid(m, p, offset, bytes)) { manager_unlock(m); return 0; }
+    first = offset / m->page_size;
+    count = bytes / m->page_size;
+    for (i = first; i < first + count; ++i) {
+        const int committed = (p->page_flags[i] & WINUX_MEMORY_REGION_COMMITTED) != 0u;
+        if ((operation == 0 && committed) ||
+            ((operation == 1 || operation == 2) && !committed)) {
+            manager_unlock(m);
+            return 0;
+        }
+    }
     if (operation == 0) ok = winux_host_memory_commit(&p->host_region, offset, bytes, &error);
     else if (operation == 1) ok = winux_host_memory_decommit(&p->host_region, offset, bytes, &error);
     else ok = winux_host_memory_protect(&p->host_region, offset, bytes, protection, &error);
@@ -175,7 +185,7 @@ int winux_memory_manager_snapshot(winux_memory_manager *m,
             }
         }
     }
-    qsort(out, used, sizeof(*out), descriptor_compare);
+    if (used > 1u) qsort(out, used, sizeof(*out), descriptor_compare);
     *out_count = used;
     manager_unlock(m);
     return 1;
