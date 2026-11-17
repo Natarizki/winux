@@ -63,6 +63,9 @@ if(WINUX_BUILD_TESTS)
     )
 
     target_link_libraries(winux_runtime_tests PRIVATE winux_host)
+    target_include_directories(winux_runtime_tests PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/host
+    )
 
     if(MSVC)
         target_compile_options(winux_runtime_tests PRIVATE /W4 /permissive-)
