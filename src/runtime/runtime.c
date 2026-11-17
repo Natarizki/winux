@@ -5,7 +5,7 @@
 
 #include <winux/winux.h>
 
-#include "win32_platform.h"
+#include "host_api.h"
 
 struct winux_runtime {
     winux_runtime_state state;
@@ -52,7 +52,7 @@ winux_status winux_runtime_create(
         return WINUX_STATUS_OUT_OF_MEMORY;
     }
 
-    if (!winux_platform_memory_allocate(
+    if (!winux_host_memory_allocate(
             effective_config.memory_limit_bytes,
             &runtime->memory_arena,
             &runtime->last_platform_error)) {
@@ -62,7 +62,7 @@ winux_status winux_runtime_create(
 
     runtime->state = WINUX_RUNTIME_STATE_CREATED;
     runtime->memory_arena_bytes = effective_config.memory_limit_bytes;
-    runtime->host_page_size_bytes = winux_platform_page_size();
+    runtime->host_page_size_bytes = winux_host_page_size();
     *out_runtime = runtime;
 
     return WINUX_STATUS_OK;
@@ -119,7 +119,7 @@ void winux_runtime_destroy(winux_runtime *runtime)
         return;
     }
 
-    winux_platform_memory_release(runtime->memory_arena);
+    winux_host_memory_free(runtime->memory_arena);
     runtime->memory_arena = NULL;
     free(runtime);
 }
