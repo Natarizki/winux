@@ -31,6 +31,10 @@ typedef enum winux_host_wait_result {
     WINUX_HOST_WAIT_SIGNALED = 1
 } winux_host_wait_result;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 int winux_platform_memory_allocate(
     size_t bytes,
     void **out_address,
@@ -102,5 +106,9 @@ int winux_host_mutex_unlock(winux_host_mutex *mutex, uint32_t *out_platform_erro
 void winux_host_mutex_destroy(winux_host_mutex *mutex);
 
 uint64_t winux_host_monotonic_time_ms(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* WINUX_WIN32_PLATFORM_H */
