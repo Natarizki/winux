@@ -33,11 +33,13 @@ ctest --test-dir build -C Release --output-on-failure
 - `src/integration/` — C++ ownership/controller layer.
 - `src/cli/` — command-line entry point.
 - `tests/` — runtime lifecycle tests.
-- `docs/` — architecture and implementation roadmap.
+- `docs/` — architecture, implementation roadmap, and kernel-hosting feasibility notes.
 
 ## Direction
 
 The intended research direction is a user-mode Linux-kernel hosting backend. That requires a substantial port/adaptation of kernel-facing facilities (memory management, task scheduling, interrupts, timers, synchronization, and device interfaces) to a Windows host environment. A normal Linux kernel cannot simply be linked into a Windows process. The prototype keeps that work separate from the small, testable Win32 host layer.
+
+See [kernel-hosting research](docs/kernel-hosting-research.md) for the UML porting constraints and the next feasibility questions.
 
 ## License
 
