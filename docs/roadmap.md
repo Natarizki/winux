@@ -15,7 +15,7 @@
 - [x] Windows CI coverage for host primitives
 - [x] Define a platform-neutral C host API with opaque handles and no Win32 types
 - [x] Specify cooperative thread stop and join semantics (host primitive; no forced termination)
-- [x] Research exception, fault, and signal translation constraints (design constraints documented; implementation remains open)
+- [x] Research exception, fault, and signal translation constraints\n- [x] Add a narrow MSVC SEH memory-probe boundary with fault metadata and tests (host diagnostic only; not Linux page-fault handling)
 
 ## Stage 2 — Kernel-hosting feasibility prototype
 - [ ] Select and document a suitable Linux kernel source baseline and architecture
