@@ -4,8 +4,6 @@
  * Native Windows host primitives. This layer deliberately does not emulate
  * Linux physical memory, devices, or kernel execution.
  */
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
 #include <windows.h>
 
 #include "win32_platform.h"
