@@ -22,9 +22,12 @@ Implemented host primitives:
 - **Virtual memory regions:** reserve, commit, decommit, protect (no-access, read-only, read-write), and release. Ranges must be page-aligned and remain inside the reserved region. Executable page permissions are intentionally not exposed.
 - **Threads:** create, request cooperative stop, poll a read-only stop token, join, obtain exit code, and destroy a host thread handle. Stop requests do not forcibly terminate a worker; callbacks must poll the token and return. Destroy waits for a worker that has not exited.
 - **Synchronization:** manual/auto-reset events and mutexes.
-- **Monotonic clock:** millisecond counter from the Windows host.\n- **Fault observation:** an MSVC SEH boundary can probe a byte and capture access-violation metadata (fault address and read/write/execute classification). This is a narrow diagnostic boundary, not a general exception dispatcher or Linux page-fault implementation.
+- **Monotonic clock:** millisecond counter from the Windows host.
+- **Fault observation:** an MSVC SEH boundary can probe a byte and capture access-violation metadata (fault address and read/write/execute classification). This is a narrow diagnostic boundary, not a general exception dispatcher or Linux page-fault implementation.
 
-The fault probe catches only access violations and guard-page exceptions; unrelated structured exceptions continue searching rather than being swallowed. The current boundary is MSVC-specific and deliberately does not expose executable-page permissions. It does not resume or repair a faulting instruction.\n\nThe stop token is backed by an interlocked host flag; it is a lifecycle primitive, not Linux task cancellation or signal delivery. These are wrappers around Win32 process resources. They are not Linux mm, Linux tasks, Linux wait queues, Linux futexes, or a kernel scheduler. In particular, a Win32 thread is only a possible host execution resource; it is not automatically equivalent to a Linux task.
+The fault probe catches only access violations and guard-page exceptions; unrelated structured exceptions continue searching rather than being swallowed. The current boundary is MSVC-specific and deliberately does not expose executable-page permissions. It does not resume or repair a faulting instruction.
+
+The stop token is backed by an interlocked host flag; it is a lifecycle primitive, not Linux task cancellation or signal delivery. These are wrappers around Win32 process resources. They are not Linux mm, Linux tasks, Linux wait queues, Linux futexes, or a kernel scheduler. In particular, a Win32 thread is only a possible host execution resource; it is not automatically equivalent to a Linux task.
 
 ## What is not implemented
 
@@ -57,3 +60,17 @@ These are research and implementation requirements, not completed features. A st
 - The host process remains an ordinary Windows process.
 - No WSL or conventional virtual machine is part of the target architecture.
 - Unsupported kernel features must be reported honestly, not represented by placeholders.
+
+
+## Fault classification policy
+
+The host SEH probe feeds a separate, platform-neutral dispatcher in
+`src/host/fault_dispatcher.c`. The dispatcher accepts a caller-owned snapshot
+of non-overlapping address regions and classifies an observed fault as
+unmapped, guard-page, protection violation, unknown access, unsupported, or
+unexpected within an allowed region. Region metadata describes policy; it is
+not yet synchronized with the Win32 virtual-memory manager.
+
+The dispatcher is deliberately pure: it does not allocate memory, change page
+protections, retry an access, or resume a faulting instruction. A future memory
+manager must own and validate the region snapshot before using this policy.
