@@ -13,7 +13,7 @@
 - [x] Event and mutex synchronization wrappers
 - [x] Monotonic millisecond clock
 - [x] Windows CI coverage for host primitives
-- [ ] Define a stable, platform-neutral host API independent of Win32 types
+- [x] Define a platform-neutral C host API with opaque handles and no Win32 types
 - [ ] Specify thread cancellation and shutdown semantics
 - [ ] Research exception, fault, and signal translation constraints
 
