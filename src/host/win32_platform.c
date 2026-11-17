@@ -220,17 +220,20 @@ int winux_host_memory_protect(
     return 1;
 }
 
-void winux_host_memory_release(winux_host_memory_region *region)
+int winux_host_memory_release(winux_host_memory_region *region, uint32_t *out_platform_error)
 {
-    if (region == NULL) {
-        return;
+    if (region == NULL || region->base == NULL) {
+        winux_set_error(out_platform_error, ERROR_INVALID_PARAMETER);
+        return 0;
     }
-
-    if (region->base != NULL) {
-        (void)VirtualFree(region->base, 0u, MEM_RELEASE);
+    if (!VirtualFree(region->base, 0u, MEM_RELEASE)) {
+        winux_set_error(out_platform_error, GetLastError());
+        return 0;
     }
     region->base = NULL;
     region->size = 0u;
+    winux_set_error(out_platform_error, ERROR_SUCCESS);
+    return 1;
 }
 
 static DWORD WINAPI winux_host_thread_entry(LPVOID raw_context)

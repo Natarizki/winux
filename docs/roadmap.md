@@ -18,6 +18,7 @@
 - [x] Research exception, fault, and signal translation constraints
 - [x] Add a narrow MSVC SEH memory-probe boundary with fault metadata and tests (host diagnostic only; not Linux page-fault handling)
 - [x] Add a pure memory-fault classifier for mapped state, guard pages, access permissions, and unknown regions
+- [x] Add an owned host virtual-memory registry with per-page metadata and coalesced snapshots
 
 ## Stage 2 — Kernel-hosting feasibility prototype
 - [ ] Select and document a suitable Linux kernel source baseline and architecture

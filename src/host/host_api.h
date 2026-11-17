@@ -72,7 +72,7 @@ int winux_host_memory_protect(
     winux_host_memory_protection protection,
     uint32_t *out_platform_error
 );
-void winux_host_memory_release(winux_host_memory_region *region);
+int winux_host_memory_release(winux_host_memory_region *region, uint32_t *out_platform_error);
 
 int winux_host_thread_create(
     winux_host_thread_entry_fn entry,

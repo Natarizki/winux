@@ -27,6 +27,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 add_library(winux_host STATIC
     src/host/win32_platform.c
     src/host/fault_dispatcher.c
+    src/host/memory_manager.c
     src/runtime/runtime.c
 )
 
@@ -66,15 +67,20 @@ if(WINUX_BUILD_TESTS)
     add_executable(winux_runtime_tests
         tests/runtime_lifecycle.cpp
     )
+    add_executable(winux_memory_manager_tests tests/memory_manager.cpp)
 
     target_link_libraries(winux_runtime_tests PRIVATE winux_host)
+    target_link_libraries(winux_memory_manager_tests PRIVATE winux_host)
     target_include_directories(winux_runtime_tests PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/host
     )
+    target_include_directories(winux_memory_manager_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/host)
 
     if(MSVC)
         target_compile_options(winux_runtime_tests PRIVATE /W4 /permissive-)
+        target_compile_options(winux_memory_manager_tests PRIVATE /W4 /permissive-)
     endif()
 
     add_test(NAME runtime_lifecycle COMMAND winux_runtime_tests)
+    add_test(NAME memory_manager COMMAND winux_memory_manager_tests)
 endif()

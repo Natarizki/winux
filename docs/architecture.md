@@ -74,3 +74,17 @@ not yet synchronized with the Win32 virtual-memory manager.
 The dispatcher is deliberately pure: it does not allocate memory, change page
 protections, retry an access, or resume a faulting instruction. A future memory
 manager must own and validate the region snapshot before using this policy.
+
+
+## Owned memory-region manager
+
+The memory manager owns a registry of reserved host virtual-memory regions.
+Each reservation has per-page state; snapshots coalesce adjacent pages with
+identical flags and are sorted by address for the fault classifier. Operations
+are serialized by a host mutex. Metadata changes occur only after the
+corresponding host operation succeeds. Callers must not mutate registered
+regions through the lower-level host memory API.
+
+This remains process virtual memory. It does not implement Linux VMAs,
+copy-on-write, page tables, physical frames, executable mappings, demand
+paging, or guest memory.
