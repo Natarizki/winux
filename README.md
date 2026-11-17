@@ -16,7 +16,7 @@ The memory arena allocated by this prototype is only host-managed memory. It is 
 
 ## Build
 
-Requirements: Windows 10/11 x64, Visual Studio 2022 C++ build tools, and CMake 3.21 or newer.
+Requirements: Windows 10/11 x64, Visual Studio 2022 or newer C++ build tools, and CMake 3.21 or newer.
 
 ```powershell
 cmake -S . -B build -A x64 -DWINUX_BUILD_TESTS=ON
