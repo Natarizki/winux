@@ -65,15 +65,10 @@ These are research and implementation requirements, not completed features. A st
 ## Fault classification policy
 
 The host SEH probe feeds a separate, platform-neutral dispatcher in
-`src/host/fault_dispatcher.c`. The dispatcher accepts a caller-owned snapshot
-of non-overlapping address regions and classifies an observed fault as
-unmapped, guard-page, protection violation, unknown access, unsupported, or
-unexpected within an allowed region. Region metadata describes policy; it is
-not yet synchronized with the Win32 virtual-memory manager.
+`src/host/fault_dispatcher.c`. The dispatcher accepts a snapshot of non-overlapping address regions and classifies an observed fault as unmapped, guard-page, protection violation, unknown access, unsupported, or unexpected within an allowed region. The memory manager now exposes `winux_memory_manager_classify_fault`, which builds a complete snapshot from its owned per-page registry and passes that immutable snapshot to the pure classifier. If concurrent mutations invalidate the sizing pass, snapshot acquisition is retried; the classifier never traverses live manager nodes.
 
 The dispatcher is deliberately pure: it does not allocate memory, change page
-protections, retry an access, or resume a faulting instruction. A future memory
-manager must own and validate the region snapshot before using this policy.
+protections, retry an access, or resume a faulting instruction. The manager owns and validates the region snapshot before invoking this policy. Classification remains diagnostic policy only; it does not repair faults, change page permissions, or resume execution.
 
 
 ## Owned memory-region manager
