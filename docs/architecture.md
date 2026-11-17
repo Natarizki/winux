@@ -10,7 +10,8 @@ Winux investigates whether an adapted Linux kernel execution environment can be 
       └─ Winux.exe (native Windows process)
            ├─ C++ RuntimeController
            └─ C runtime
-                └─ Win32 host backend
+                └─ platform-neutral host_api.h contract
+                     └─ Win32 host backend
                      ├─ VirtualAlloc / VirtualProtect / VirtualFree
                      ├─ CreateThread / WaitForSingleObject
                      ├─ Events and mutexes
@@ -28,6 +29,8 @@ These are wrappers around Win32 process resources. They are not Linux mm, Linux 
 ## What is not implemented
 
 The current code does not load or execute Linux kernel code, implement Linux task semantics, deliver Linux signals, handle Linux page faults, expose Linux system calls, or provide Linux device drivers. The memory regions are ordinary process virtual memory, not a Linux guest-physical-memory system.
+
+The host contract is defined in src/host/host_api.h and uses opaque handles rather than exposing Win32 types. The current implementation is in src/host/win32_platform.c. This separation permits a future backend without changing the runtime-facing API.
 
 ## Future kernel-hosting work
 
