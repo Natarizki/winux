@@ -15,7 +15,9 @@
 - [x] Windows CI coverage for host primitives
 - [x] Define a platform-neutral C host API with opaque handles and no Win32 types
 - [x] Specify cooperative thread stop and join semantics (host primitive; no forced termination)
-- [x] Research exception, fault, and signal translation constraints\n- [x] Add a narrow MSVC SEH memory-probe boundary with fault metadata and tests (host diagnostic only; not Linux page-fault handling)
+- [x] Research exception, fault, and signal translation constraints
+- [x] Add a narrow MSVC SEH memory-probe boundary with fault metadata and tests (host diagnostic only; not Linux page-fault handling)
+- [x] Add a pure memory-fault classifier for mapped state, guard pages, access permissions, and unknown regions
 
 ## Stage 2 — Kernel-hosting feasibility prototype
 - [ ] Select and document a suitable Linux kernel source baseline and architecture
@@ -30,3 +32,7 @@
 - [ ] Add process and I/O integration only after the kernel backend is functional
 
 Only completed and CI-tested items are checked. Stages 2 and 3 are not implemented.
+
+
+The fault classifier consumes a caller-owned region snapshot. It is policy
+classification only; it does not repair faults or implement Linux MM behavior.
