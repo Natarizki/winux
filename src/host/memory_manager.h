@@ -21,6 +21,8 @@ int winux_memory_manager_protect(winux_memory_manager *manager, void *region_bas
 int winux_memory_manager_release(winux_memory_manager *manager, void *region_base);
 /* out_count receives required count; insufficient capacity writes no partial snapshot. */
 int winux_memory_manager_snapshot(winux_memory_manager *manager, winux_memory_region_descriptor *out_regions, size_t capacity, size_t *out_count);
+/* Classifies against one internally generated, address-space-consistent snapshot. */
+int winux_memory_manager_classify_fault(winux_memory_manager *manager, const winux_host_fault_record *fault, winux_fault_decision *out_decision);
 #ifdef __cplusplus
 }
 #endif
