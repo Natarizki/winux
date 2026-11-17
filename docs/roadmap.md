@@ -14,8 +14,8 @@
 - [x] Monotonic millisecond clock
 - [x] Windows CI coverage for host primitives
 - [x] Define a platform-neutral C host API with opaque handles and no Win32 types
-- [ ] Specify thread cancellation and shutdown semantics
-- [ ] Research exception, fault, and signal translation constraints
+- [x] Specify cooperative thread stop and join semantics (host primitive; no forced termination)
+- [x] Research exception, fault, and signal translation constraints (design constraints documented; implementation remains open)
 
 ## Stage 2 — Kernel-hosting feasibility prototype
 - [ ] Select and document a suitable Linux kernel source baseline and architecture
