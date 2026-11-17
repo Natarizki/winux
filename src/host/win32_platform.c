@@ -10,8 +10,13 @@
 
 #include "host_api.h"
 
+struct winux_host_stop_token {
+    volatile LONG requested;
+};
+
 struct winux_host_thread {
     HANDLE handle;
+    struct winux_host_stop_token stop_token;
     int joined;
     uint32_t exit_code;
 };
@@ -27,6 +32,7 @@ struct winux_host_mutex {
 struct winux_thread_start_context {
     winux_host_thread_entry_fn entry;
     void *context;
+    const winux_host_stop_token *stop_token;
 };
 
 static void winux_set_error(uint32_t *out_error, DWORD error)
@@ -233,10 +239,11 @@ static DWORD WINAPI winux_host_thread_entry(LPVOID raw_context)
         (struct winux_thread_start_context *)raw_context;
     winux_host_thread_entry_fn entry = start->entry;
     void *context = start->context;
+    const winux_host_stop_token *stop_token = start->stop_token;
     uint32_t result;
 
     free(start);
-    result = entry(context);
+    result = entry(context, stop_token);
     return (DWORD)result;
 }
 
@@ -270,6 +277,7 @@ int winux_host_thread_create(
 
     start->entry = entry;
     start->context = context;
+    start->stop_token = &thread->stop_token;
 
     handle = CreateThread(NULL, 0u, winux_host_thread_entry, start, 0u, NULL);
     if (handle == NULL) {
@@ -282,6 +290,30 @@ int winux_host_thread_create(
     thread->handle = handle;
     *out_thread = thread;
     return 1;
+}
+
+int winux_host_thread_request_stop(
+    winux_host_thread *thread,
+    uint32_t *out_platform_error
+)
+{
+    if (thread == NULL) {
+        winux_set_error(out_platform_error, ERROR_INVALID_PARAMETER);
+        return 0;
+    }
+
+    (void)InterlockedExchange(&thread->stop_token.requested, 1);
+    winux_set_error(out_platform_error, ERROR_SUCCESS);
+    return 1;
+}
+
+int winux_host_stop_requested(const winux_host_stop_token *stop_token)
+{
+    if (stop_token == NULL) {
+        return 0;
+    }
+    return InterlockedCompareExchange(
+        (volatile LONG *)&stop_token->requested, 0, 0) != 0;
 }
 
 int winux_host_thread_join(
