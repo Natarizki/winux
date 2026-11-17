@@ -550,3 +550,72 @@ uint64_t winux_host_monotonic_time_ms(void)
 {
     return (uint64_t)GetTickCount64();
 }
+
+
+#include "host_fault.h"
+
+static int winux_host_fault_filter(
+    EXCEPTION_POINTERS *exception_pointers,
+    winux_host_fault_record *out_fault
+)
+{
+    EXCEPTION_RECORD *record;
+    ULONG_PTR operation;
+
+    if (exception_pointers == NULL || exception_pointers->ExceptionRecord == NULL ||
+        out_fault == NULL) {
+        return EXCEPTION_CONTINUE_SEARCH;
+    }
+
+    record = exception_pointers->ExceptionRecord;
+    if (record->ExceptionCode != EXCEPTION_ACCESS_VIOLATION &&
+        record->ExceptionCode != STATUS_GUARD_PAGE_VIOLATION) {
+        return EXCEPTION_CONTINUE_SEARCH;
+    }
+
+    out_fault->kind = record->ExceptionCode == EXCEPTION_ACCESS_VIOLATION
+        ? WINUX_HOST_FAULT_ACCESS_VIOLATION
+        : WINUX_HOST_FAULT_GUARD_PAGE;
+    out_fault->platform_exception_code = (uint32_t)record->ExceptionCode;
+    out_fault->fault_address = (uintptr_t)record->ExceptionAddress;
+    out_fault->access = WINUX_HOST_FAULT_ACCESS_UNKNOWN;
+
+    if (record->NumberParameters >= 2u) {
+        operation = record->ExceptionInformation[0];
+        out_fault->fault_address = (uintptr_t)record->ExceptionInformation[1];
+        if (operation == 0u) {
+            out_fault->access = WINUX_HOST_FAULT_ACCESS_READ;
+        } else if (operation == 1u) {
+            out_fault->access = WINUX_HOST_FAULT_ACCESS_WRITE;
+        } else if (operation == 8u) {
+            out_fault->access = WINUX_HOST_FAULT_ACCESS_EXECUTE;
+        }
+    }
+
+    return EXCEPTION_EXECUTE_HANDLER;
+}
+
+int winux_host_memory_probe_read(
+    const volatile void *address,
+    uint8_t *out_value,
+    winux_host_fault_record *out_fault
+)
+{
+    if (address == NULL || out_value == NULL || out_fault == NULL) {
+        return -1;
+    }
+
+    out_fault->kind = WINUX_HOST_FAULT_NONE;
+    out_fault->access = WINUX_HOST_FAULT_ACCESS_UNKNOWN;
+    out_fault->fault_address = 0u;
+    out_fault->platform_exception_code = ERROR_SUCCESS;
+
+    __try {
+        *out_value = *(const volatile uint8_t *)address;
+    }
+    __except (winux_host_fault_filter(GetExceptionInformation(), out_fault)) {
+        return 0;
+    }
+
+    return 1;
+}
